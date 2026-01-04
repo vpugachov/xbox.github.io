@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xbox 360 HDD Builder — UA</title>
+    <style>
+        :root { --xbox-green: #107C10; --bg: #0a0a0a; --card: #171717; --text: #ffffff; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 50px; line-height: 1.5; }
+        .header { background: linear-gradient(rgba(0,0,0,0.7), var(--bg)), url('https://images.unsplash.com/photo-1605901309584-818e25960a8f?q=80&w=1000') center/cover; padding: 60px 20px; text-align: center; border-bottom: 3px solid var(--xbox-green); }
+        .container { max-width: 1100px; margin: 0 auto; padding: 0 15px; }
+        .section { background: var(--card); border-radius: 12px; padding: 25px; margin-top: 25px; border: 1px solid #252525; }
+        h2 { color: var(--xbox-green); font-weight: 300; margin-top: 0; border-left: 4px solid var(--xbox-green); padding-left: 15px; }
+        
+        .grid-config { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .grid-config { grid-template-columns: 1fr; } }
+
+        select, input { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #333; background: #252525; color: white; font-size: 16px; transition: 0.3s; }
+        select:focus, input:focus { border-color: var(--xbox-green); outline: none; }
+        .price-box { font-size: 32px; font-weight: bold; color: var(--xbox-green); text-align: right; margin-top: 10px; }
+
+        /* Автопідбір */
+        .preset-btns { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+        .btn-preset { background: #333; color: white; border: 1px solid #444; padding: 12px 20px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-weight: 500; }
+        .btn-preset:hover { background: #444; border-color: var(--xbox-green); transform: translateY(-2px); }
+        .btn-random { background: var(--xbox-green); border: none; }
+        .btn-random:hover { background: #139113; }
+
+        /* Панель прогресу */
+        .storage-sticky { position: sticky; top: 15px; z-index: 100; background: #1f1f1f; padding: 20px; border-radius: 12px; border: 1px solid var(--xbox-green); box-shadow: 0 15px 35px rgba(0,0,0,0.7); margin-bottom: 30px; }
+        .prog-bg { background: #333; height: 12px; border-radius: 6px; overflow: hidden; margin-top: 12px; }
+        #prog-fill { background: var(--xbox-green); height: 100%; width: 0%; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        #prog-fill.full { background: #e74c3c; }
+        
+        /* Список ігор */
+        .games-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 20px; max-height: 700px; overflow-y: auto; padding: 10px; scroll-behavior: smooth; border: 1px solid #333; border-radius: 8px; background: #0e0e0e; }
+        .game-card { background: #222; border-radius: 10px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: 0.3s; display: flex; flex-direction: column; }
+        .game-card:hover { transform: scale(1.02); background: #2a2a2a; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .game-card.selected { border-color: var(--xbox-green); background: #0d210d; }
+        .game-card img { width: 100%; aspect-ratio: 3/4; object-fit: cover; background: #1a1a1a; pointer-events: none; }
+        .game-info { padding: 12px; flex-grow: 1; display: flex; flex-direction: column; justify-content: space-between; }
+        .game-title { font-size: 13px; font-weight: bold; margin-bottom: 8px; min-height: 38px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .game-size { color: var(--xbox-green); font-size: 12px; font-weight: 800; }
+
+        .btn-submit { background: var(--xbox-green); color: white; border: none; padding: 20px; width: 100%; font-size: 22px; font-weight: bold; border-radius: 10px; cursor: pointer; margin-top: 30px; box-shadow: 0 10px 20px rgba(16, 124, 16, 0.2); }
+        .btn-submit:hover { background: #139113; transform: translateY(-2px); }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #111; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--xbox-green); }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>XBOX 360 HDD CONFIGURATOR</h1>
+    <p>Оберіть об'єм та наповніть іграми. Ціни в гривнях (₴)</p>
+</div>
+
+<div class="container">
+    <form action="https://formspree.io/f/ВАША_ПОШТА" method="POST">
+        
+        <div class="section">
+            <h2>1. Залізо</h2>
+            <div class="grid-config">
+                <div>
+                    <label>Накопичувач:</label>
+                    <select name="HDD_Capacity" id="hdd-select" onchange="calculate()">
+                        <option value="250" data-price="950">250 Gb — 950 ₴</option>
+                        <option value="320" data-price="1150">320 Gb — 1150 ₴</option>
+                        <option value="500" data-price="1650">500 Gb — 1650 ₴</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Додатково:</label>
+                    <div style="margin-top:12px; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" name="USB_Case" id="case-check" onchange="calculate()" style="width:20px; height:20px; cursor:pointer;">
+                        <label for="case-check">Зовнішня USB кишеня (+180 ₴)</label>
+                    </div>
+                </div>
+            </div>
+            <div class="price-box">Разом: <span id="total-price">0</span> ₴</div>
+        </div>
+
+        <div class="storage-sticky">
+            <div style="display:flex; justify-content:space-between; align-items: center;">
+                <span style="font-size: 18px;">Пам'ять: <b id="used-gb">0</b> / <b id="max-gb">0</b> GB</span>
+                <span id="game-count" style="background: var(--xbox-green); padding: 4px 12px; border-radius: 15px; font-size: 14px; font-weight: bold;">Обрано: 0</span>
+            </div>
+            <div class="prog-bg"><div id="prog-fill"></div></div>
+        </div>
+
+        <div class="section">
+            <h2>2. Бібліотека ігор</h2>
+            <div class="preset-btns">
+                <button type="button" class="btn-preset" onclick="applyPreset('hits')">🔥 ТОП Хіти</button>
+                <button type="button" class="btn-preset" onclick="applyPreset('kids')">👶 Для дітей</button>
+                <button type="button" class="btn-preset" onclick="applyPreset('exclusives')">💚 Ексклюзиви</button>
+                <button type="button" class="btn-preset btn-random" onclick="applyPreset('random')">🎲 Заповнити випадково</button>
+                <button type="button" class="btn-preset" onclick="clearSelection()" style="color:#ff5555; border-color: #552222;">❌ Очистити</button>
+            </div>
+            <input type="text" id="search" placeholder="Пошук ігор за назвою..." onkeyup="filterGames()">
+            <div id="games-list" class="games-list"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. Дані для відправки</h2>
+            <div class="grid-config">
+                <input type="text" name="Client_Name" placeholder="Ваше Ім'я" required>
+                <input type="tel" name="Client_Phone" placeholder="Номер телефону" required>
+            </div>
+            <textarea name="Order_Summary" id="games-input" hidden></textarea>
+            <button type="submit" class="btn-submit">ПІДТВЕРДИТИ ЗАМОВЛЕННЯ</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // ПОВНИЙ СПИСОК 267 ІГОР
+    const rawData = `1. Ace Combat Assault Horizon [4E4D081C] (8,18 Gb)
+2. Alan Wake [4D530805] (7,25 Gb)
+3. Alan Wake's American Nightmare [58411233] (1,30 Gb)
+4. Alice Madness Returns [45410916] (5,71 Gb)
+5. Alien Isolation Ripley Edition [5345085E] (11,25 Gb)
+6. Aliens Colonial Marines [5345080C] (8,27 Gb)
+7. Aliens vs. Predator [5345082A] (6,24 Gb)
+8. Army of Two [4541084C] (5,40 Gb)
+9. Army of Two Devil's Cartel [454109AB] (7,24 Gb)
+10. Army of TWO TFD [454108D8] (6,53 Gb)
+11. Assassin's Creed III Complete [555308AE] (10,29 Gb)
+12. Assassin’s Creed - Rogue [555308CE] (5,42 Gb)
+13. Assassin’s Creed 2 [5553083B] (6,70 Gb)
+14. Assassin’s Creed Brotherhood [5553085D] (7,69 Gb)
+15. Assassin’s Creed IV-Black Flag-Black Chest Edition [555308C2] (7,02 Gb)
+16. Assassin’s Creed Liberation [584113FC] (1,75 Gb)
+17. Assassin’s Creed Revelations [55530879] (7,19 Gb)
+18. Asura's Wrath [43430817] (10,46 Gb)
+19. Bad Company 2 [454108A8] (4,88 Gb)
+20. Batman Arkham Aslylum GOTYE [5343080B] (6,01 Gb)
+21. Batman Arkham Asylum [534307F6] (7,01 Gb)
+22. Batman Arkham City - Complete Edition [57520802] (8,26 Gb)
+23. Batman Arkham Origins - Complete Edition [57520828] (10,24 Gb)
+24. Batman. Arkham Origins Blackgate [58411441] (2,65 Gb)
+25. Battlefield 3 [45410950] (8,25 Gb)
+26. Battlefield 4 [454109BA] (7,52 Gb)
+27. Battlefield Bad Company [454107F9] (6,19 Gb)
+28. Battlefield Hardline [454109E0] (11,03 Gb)
+29. BioShock 2 Complete Edition [54540861] (6,41 Gb)
+30. BioShock Infinite [5454085D] (11,62 Gb)
+31. BioShock Ultimate Rapture Edition [545407d8] (4,96 Gb)
+32. Blue Dragon [4D5307DF] (19,28 Gb)
+33. Blur [41560845] (5,34 Gb)
+34. Bodycount [434D0839] (5,55 Gb)
+35. Borderlands [545407E7] (6,96 Gb)
+36. Borderlands 2 [5454087C] (9,28 Gb)
+37. Borderlands The Pre-Sequel! [545408B4] (5,17 Gb)
+38. Brink [425307D9] (6,05 Gb)
+39. Bulletstorm [454108EF] (5,31 Gb)
+40. Burnout Paradise The Ultimate [45410806] (3,24 Gb)
+41. Call of Duty Advanced Warfare [41560914] (17,75 Gb)
+42. Call of Duty Black Ops 1 [41560855] (6,75 Gb)
+43. Call of Duty Black Ops 2 [415608C3] (7,57 Gb)
+44. Call Of Duty Black Ops 3 [4156091D] (7,54 Gb)
+45. Call Of Duty Ghosts [415608FC] (15,41 Gb)
+46. Call of Juarez [555307FA] (5,65 Gb)
+47. Call of Juarez Bound in Blood [5553081C] (3,86 Gb)
+48. Call of Juarez Gunslinger [584112B0] (1,91 Gb)
+49. Call of Juarez The Cartel [55530874] (6,09 Gb)
+50. Castlevania Lords of Shadow 2 [4B4E084D] (4,41 Gb)
+51. Colin McRae Dirt [434D07DB] (6,10 Gb)
+52. Colin McRae Dirt 2 [434D0819] (6,43 Gb)
+53. Conan [545107DA] (4,86 Gb)
+54. Condemned 2 Bloodshot [534507EF] (6,80 Gb)
+55. Condemned Criminal Origins [534507D2] (4,68 Gb)
+56. Crackdown [4D5307DC] (6,23 Gb)
+57. Crackdown 2 [4D5308BC] (3,59 Gb)
+58. Crysis 1 [45410968] (2,93 Gb)
+59. Crysis 2 [454108E3] (5,20 Gb)
+60. Crysis 3 [4541098E] (4,16 Gb)
+61. Dark Souls [4E4D083A] (7,90 Gb)
+62. Dark Souls II [465307E4] (6,64 Gb)
+63. Dead Island [4B4D07DF] (5,65 Gb)
+64. Dead Island Riptide [4B4D07F2] (3,85 Gb)
+65. Dead Space [45410857] (7,26 Gb)
+66. Dead Space 2 [454108DF] (14,90 Gb)
+67. Dead Space 3 [4541099D] (15,05 Gb)
+68. DEUS EX HUMAN REVOLUTION [535107FA] (10,79 Gb)
+69. Diablo III Ultimate Evil Edition [394F07D4] (7,71 Gb)
+70. DiRT 3 [434D083D] (7,42 Gb)
+71. Dirt Showdown [434D0845] (4,17 Gb)
+72. Dishonored [425307E3] (7,61 Gb)
+73. DOOM 3 BFG Edition [425307F1] (6,83 Gb)
+74. Dragon Age 1 [454108C0] (10,54 Gb)
+75. Dragon Age 2 [4541090B] (8,29 Gb)
+76. Dragon Age Inquisition [45410997] (15,29 Gb)
+77. Driver San Francisco [5553087E] (4,85 Gb)
+78. Earthworm Jim HD [584109E2] (434,71 MB)
+79. F.E.A.R [565507D9] (3,75 Gb)
+80. F.E.A.R. 2 [575207D3] (5,51 Gb)
+81. F.E.A.R. 3 [57520800] (6,17 Gb)
+82. F.E.A.R. Files [565507E8] (6,21 Gb)
+83. F1 2010 [434D082D] (4,01 Gb)
+84. Fable 1 Anniversary [4D530A87] (4,63 Gb)
+85. Fable 2 [4D5307F1] (6,52 Gb)
+86. Fable 3 [4D5308D6] (6,64 Gb)
+87. Fable The Journey [4D530A1A] (6,75 Gb)
+88. Fallout 3 Game Of The Year Edition [425307D5] (8,16 Gb)
+89. Fallout New Vegas Ultimate Edition [425307E0] (6,58 Gb)
+90. Far Cry 3 [5553088C] (5,16 Gb)
+91. Far Cry 3 Blood Dragon [584113BF] (1,32 Gb)
+92. Far Cry 4 [555308CA] (9,47 Gb)
+93. Far.Cry.Classic.HD.XBLA [5841123E] (2,09 Gb)
+94. FIFA 19 Legacy Edition [454109F9] (6,60 Gb)
+95. Forza Motorsport 2 [4D5307EA] (5,33 Gb)
+96. Forza Motorsport 3 [4D53084D] (11,75 Gb)
+97. Forza Motorsport 4 Unicorn Cars Edition [4D530910] (10,38 Gb)
+98. Forza.Horizon.Unicorn.Cars.Edition [4D5309C9] (9,46 Gb)
+99. Fuel [434D080D] (3,74 Gb)
+100. Game of Thrones [464507DB] (2,70 Gb)
+101. Gears of War 1 [4D5307D5] (7,06 Gb)
+102. Gears of War 2 [4D53082D] (7,78 Gb)
+103. Gears of War 3 [4D5308AB] (10,28 Gb)
+104. Gears of War Judgment [4D530A26] (7,37 Gb)
+105. GoldenEye 007 Reloaded [584108A9] (7,44 Gb)
+106. Grand Theft Auto 4 [545407F2] (10,27 Gb)
+107. Grand Theft Auto 5 [545408A7] (15,46 Gb)
+108. Grand Theft Auto San Andreas [545408B8] (2,05 Gb)
+109. Grid 2 [434D0844] (6,19 Gb)
+110. GRID Autosport [434D0851] (8,31 Gb)
+111. Half Life 2 The Orange Box [4541080F] (3,92 Gb)
+112. Halo 0 Reach [4D53885C] (6,49 Gb)
+113. Halo 1 Anniversary [4D5309B1] (7,83 Gb)
+114. Halo 3 [4D5307E6] (5,69 Gb)
+115. Halo 3 ODST [4D530877] (3,50 Gb)
+116. Halo 4 [4D530919] (15,04 Gb)
+117. Halo Wars [4D530808] (5,95 Gb)
+118. Harry Potter 2 [45410955] (4,57 Gb)
+119. Harry Potter I [454108F9] (5,48 Gb)
+120. Hitman Absolution [53510804] (7,38 Gb)
+121. Hitman Absolution - Sniper Challenge [53518813] (690,98 MB)
+122. Homefront [54510846] (6,57 Gb)
+123. Hunted Demon’s Forge [425307D7] (5,75 Gb)
+124. Injustice.Gods.Among [57520829] (8,44 Gb)
+125. Insanely Twisted Shadow Planet [58410B1C] (577,09 MB)
+126. Inversion [4E4D0801] (2,96 Gb)
+127. L.A.Noire [5454086C] (25,69 Gb)
+128. Left 4 Dead 2 [454108D4] (6,60 Gb)
+129. Legend of the Guardians [575207F1] (2,40 Gb)
+130. Lego Batman 2 DC Super Heroes [57520817] (4,20 Gb)
+131. Lego Batman 3 Beyond Gotham [57520845] (7,80 Gb)
+132. Lego Batman The Videogame [575207D7] (5,96 Gb)
+133. Lego Dimensions [5752084B] (7,07 Gb)
+134. Lego Harry Potter Years 1–4 [575207E6] (6,32 Gb)
+135. Lego Harry Potter Years 5–7 [57520812] (7,74 Gb)
+136. Lego Indiana Jones 2 The Adventure Continues [4C4107ED] (5,60 Gb)
+137. Lego Indiana Jones The Original Adventures [4C4107DF] (3,53 Gb)
+138. Lego Jurassic World [5752084D] (6,84 Gb)
+139. Lego Marvel Super Heroes [57520835] (5,30 Gb)
+140. Lego Marvel's Avengers [5752084F] (6,94 Gb)
+141. Lego Pirates of the Caribbean The Video Game [42560802] (6,30 Gb)
+142. Lego Star Wars II The Original Trilogy [4C4107D1] (1,96 Gb)
+143. Lego Star Wars III The Clone Wars [4C4107F3] (6,03 Gb)
+144. Lego Star Wars The Complete Saga [4C4107D7] (5,71 Gb)
+145. Lego Star Wars The Force Awakens [57520851] (7,16 Gb)
+146. Lego The Hobbit [57520844] (6,01 Gb)
+147. Lego The Lord of the Rings [5752081D] (5,97 Gb)
+148. Lost Odyssey [4D5307FA] (21,70 Gb)
+149. Mafia 2 [5454087D] (8,14 Gb)
+150. Marvel vs. Capcom 2 [58410976] (196,99 MB)
+151. Marvel vs. Capcom 3 Fate of Two Worlds [43430806] (2,80 Gb)
+152. Mass Effect [4D5307E8] (9,56 Gb)
+153. Mass Effect 2 [454108CE] (16,31 Gb)
+154. Mass Effect 3 [4541095D] (24,85 Gb)
+155. Max Payne 3 [5454086B] (15,56 Gb)
+156. Medal of Honor [454108F7] (5,45 Gb)
+157. Medal of Honor Airborne [454107F6] (5,94 Gb)
+158. Medal of Honor Warfighter [45410993] (9,08 Gb)
+159. Metal Gear Solid 2 AND 3 [4B4E0840] (7,45 Gb)
+160. Metal Gear Solid PW [4B4E083C] (4,09 Gb)
+161. Metal Gear Solid V The Phantom Pain [4B4E085E] (9,09 Gb)
+162. Metro 2033 [54510842] (4,86 Gb)
+163. Metro Last Light [4B4D07F5] (4,78 Gb)
+164. MGS Peace Walker [4B4E083C] (8,15 Gb)
+165. Middle Earth Shadow Of Mordor GOD [5752082C] (9,60 Gb)
+166. Minecraft [584111F7] (1,89 Gb)
+167. Mirror\`s Edge [45410850] (5,72 Gb)
+168. Monopoly Plus [58411457] (542,75 MB)
+169. Mortal Kombat [575207FD] (7,20 Gb)
+170. MotoGP 15 [513107D9] (6,59 Gb)
+171. Motorcycle Club [573607E0] (1,29 Gb)
+172. Nail'd [4B4D07E0] (3,43 Gb)
+173. Need For Speed Carbon [454107EC] (5,01 Gb)
+174. Need For Speed Hot Pursuit [45410903] (7,11 Gb)
+175. Need For Speed Most Wanted [454107D9] (6,71 Gb)
+176. Need For Speed Most Wanted 2012 [45410961] (6,06 Gb)
+177. Need For Speed ProStreet [45410822] (5,55 Gb)
+178. Need For Speed Rivals [454109C6] (8,95 Gb)
+179. Need For Speed Shift [454108B4] (4,21 Gb)
+180. Need For Speed Shift 2 Unleashed [45410934] (5,90 Gb)
+181. Need For Speed The Run [4541094A] (7,80 Gb)
+182. Need For Speed Undercover [45410876] (5,13 Gb)
+183. Ninja Gaiden 2 [544307D5] (6,99 Gb)
+184. Ninja Gaiden 3 [4B5607D4] (3,73 Gb)
+185. Operation Flashpoint Dragon Rising [434D0811] (6,30 Gb)
+186. Operation Flashpoint Red River [434D0838] (4,79 Gb)
+187. Payday 2 [464F0800] (5,93 Gb)
+188. Portal 2 [45410912] (5,90 Gb)
+189. Prince of Persia The Forgotten Sands [5553083E] (4,48 Gb)
+190. Project Gotham Racing 3 [4D5307D1] (6,03 Gb)
+191. Project Gotham Racing 4 [4D5307F9] (6,03 Gb)
+192. Race Driver Grid [434D07FF] (6,55 Gb)
+193. RAGE Complete Edition [425307EC] (23,85 Gb)
+194. Rayman 3 HD [5841123F] (1,95 Gb)
+195. Rayman Legends [555308C3] (6,57 Gb)
+196. Rayman Origins [55530884] (5,56 Gb)
+197. Red Dead Redemption [5454082B] (13,44 Gb)
+198. Remember Me [4343082F] (6,32 Gb)
+199. Resident Evil 4 HD [4343081C] (4,03 Gb)
+200. Resident Evil 5 [434307D4] (7,65 Gb)
+201. Resident Evil 6 [43430819] (7,93 Gb)
+202. Resident Evil Code Veronica X HD [43430822] (1,70 Gb)
+203. Resident Evil HD Remaster [43430841] (5,89 Gb)
+204. Resident Evil Operation Raccoon City [4343081D] (8,08 Gb)
+205. Resident Evil Revelations [43430833] (7,85 Gb)
+206. Resident Evil Revelations 2 [5841144C] (13,83 Gb)
+207. Resident Evil Zero HD Remaster [43430842] (3,47 Gb)
+208. Ridge Racer Unbounded [4E4D083E] (1,60 Gb)
+209. Rise of Nightmares [53450846] (2,17 Gb)
+210. Rise of the Tomb Raider [53510823] (8,08 Gb)
+211. Saints Row 4 [4B4D07F6] (8,20 Gb)
+212. SEGA Rally [534507E6] (3,57 Gb)
+213. Shank [58410A62] (1,97 Gb)
+214. Skate 3 [454108E6] (6,93 Gb)
+215. Sleeping Dogs [53510811] (14,78 Gb)
+216. Sniper Ghost Warrior 1 [435907D1] (2,81 Gb)
+217. Sniper Ghost Warrior 2 [435907D4] (4,37 Gb)
+218. Sniper.Elite.3 [464F0803] (4,88 Gb)
+219. Spec Ops The Line [54540843] (5,40 Gb)
+220. Spider-Man 3 [415607E2] (3,69 Gb)
+221. Spider-Man Edge of Time [415608B2] (5,12 Gb)
+222. Spider-Man Friend or Foe [415607FA] (3,57 Gb)
+223. Spider-Man Shattered Dimensions [41560881] (5,27 Gb)
+224. Spider-Man Web of Shadows [41560815] (5,22 Gb)
+225. Split Second [425607E7] (7,44 Gb)
+226. SSX [4541096D] (3,69 Gb)
+227. Star Wars The Force Unleashed 1 [4C4107D2] (12,18 Gb)
+228. Star Wars The Force Unleashed 2 [4C4107F2] (6,28 Gb)
+229. Street Fighter X Tekken [4343080F] (5,57 Gb)
+230. Super Time Force [584112CE] (556,26 MB)
+231. Superstars V8 Racing [4C5307D3] (1,17 Gb)
+232. Syndicate [45410923] (7,03 Gb)
+233. Tales from the Borderlands [5841143A] (4,30 Gb)
+234. Teenage Mutant Ninja Turtles. Turtles in Time Re-Shelled [584109D2] (265,14 MB)
+235. Tekken 6 [4E4D07FC] (6,59 Gb)
+236. Tekken Tag Tournament 2 [4E4D0859] (12,29 Gb)
+237. Terminator Salvation The Videogame [455607D5] (6,23 Gb)
+238. Test Drive Unlimited [494707D4] (3,41 Gb)
+239. Test Drive Unlimited 2 [49470804] (6,55 Gb)
+240. The Amazing Spider-Man [415608B5] (6,47 Gb)
+241. The Amazing Spider-Man 2 [41560905] (5,82 Gb)
+242. The Cursed Crusade [445407DE] (5,85 Gb)
+243. The Darkness 2 [5454088D] (5,93 Gb)
+244. The Elder Scrolls V. Skyrim [425307E6] (5,13 Gb)
+245. The godfather 2 [45410866] (6,78 Gb)
+246. The Lego Movie Videogame [57520841] (5,61 Gb)
+247. The Lord of the Ring Conquest [45410852] (5,41 Gb)
+248. The Walking Dead Survival [415608E1] (5,28 Gb)
+249. The Witcher 2 - Assassins of Kings [4E4D0855] (15,42 Gb)
+250. Thief [53510803] (5,39 Gb)
+251. Tom Clancy's Splinter Cell Blacklist Deluxe Edition [555308B6] (10,61 Gb)
+252. Tom Clancy’s Ghost Recon - Future Soldier [55530833] (9,62 Gb)
+253. Tomb Raider [53510802] (6,75 Gb)
+254. Tron Evolution [425607ED] (5,10 Gb)
+255. Ultimate Marvel vs. Capcom 3 [43430821] (3,14 Gb)
+256. Ultra Street Fighter IV [434307FC] (10,77 Gb)
+257. Vanquish [53450841] (6,53 Gb)
+258. Warhammer 40,000 Space Marine [5451082C] (5,87 Gb)
+259. Watch Dogs [555308B7] (10,55 Gb)
+260. Worms Revolution [58411290] (477,52 MB)
+261. WRC 2 Limited Edition [4C5307EB] (3,63 Gb)
+262. WRC 3 [4C5307F3] (3,97 Gb)
+263. WRC 4 [573607DD] (3,51 Gb)
+264. WRC 5 [573607E2] (4,10 Gb)
+265. WRC Powerslide [584113D1] (1,07 Gb)
+266. XCOM Enemy Unknown [54540882] (7,10 Gb)
+267. XCOM Enemy Within [545408AE] (8,07 Gb)`;
+
+    const games = [];
+    let selectedIds = new Set();
+    let maxGb = 0;
+    let usedGb = 0;
+
+    const presets = {
+        hits: ['Grand Theft Auto', 'Mortal Kombat', 'Red Dead', 'FIFA', 'Skyrim', 'Need For Speed', 'Mafia', 'Assassin', 'Battlefield', 'Call of Duty', 'Batman'],
+        kids: ['Lego', 'Minecraft', 'Rayman', 'Harry Potter', 'Kung Fu Panda', 'Sonic', 'Madagascar', 'Spider-Man', 'Jurassic World'],
+        exclusives: ['Halo', 'Gears of War', 'Forza', 'Fable', 'Alan Wake', 'Crackdown', 'Blue Dragon', 'Lost Odyssey']
+    };
+
+    // Парсинг тексту в об'єкти
+    rawData.trim().split('\n').forEach((line, index) => {
+        const match = line.match(/\d+\.\s+(.*?)\s*\[(.*?)\]\s*\(([\d,.]+)\s*(Gb|MB)\)/i);
+        if (match) {
+            let size = parseFloat(match[3].replace(',', '.'));
+            if (match[4].toLowerCase() === 'mb') size /= 1024;
+            games.push({ 
+                id: index, 
+                name: match[1].trim(), 
+                size: size, 
+                code: match[2],
+                imgName: match[1].split(' [')[0].trim() 
+            });
+        }
+    });
+
+    function renderGames() {
+        const list = document.getElementById('games-list');
+        list.innerHTML = games.map(g => `
+            <div class="game-card" id="g-${g.id}" onclick="toggleGame(${g.id})">
+                <img src="https://via.placeholder.com/200x260/1a1a1a/107C10?text=${encodeURIComponent(g.imgName)}" 
+                     alt="${g.name}" loading="lazy">
+                <div class="game-info">
+                    <div class="game-title">${g.name}</div>
+                    <div class="game-size">${g.size.toFixed(2)} GB</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function toggleGame(id) {
+        const game = games.find(g => g.id === id);
+        if (selectedIds.has(id)) {
+            selectedIds.delete(id);
+            usedGb -= game.size;
+        } else {
+            if (usedGb + game.size > maxGb) {
+                alert("❌ На вибраному диску недостатньо вільного місця!");
+                return;
+            }
+            selectedIds.add(id);
+            usedGb += game.size;
+        }
+        updateUI();
+    }
+
+    function applyPreset(type) {
+        if (type === 'random') {
+            let shuffled = [...games].sort(() => 0.5 - Math.random());
+            shuffled.forEach(g => {
+                if (!selectedIds.has(g.id) && (usedGb + g.size <= maxGb * 0.97)) {
+                    selectedIds.add(g.id);
+                    usedGb += g.size;
+                }
+            });
+        } else {
+            const keys = presets[type];
+            games.forEach(g => {
+                const isMatch = keys.some(k => g.name.toLowerCase().includes(k.toLowerCase()));
+                if (isMatch && !selectedIds.has(g.id) && (usedGb + g.size <= maxGb)) {
+                    selectedIds.add(g.id);
+                    usedGb += g.size;
+                }
+            });
+        }
+        updateUI();
+    }
+
+    function calculate() {
+        const h = document.getElementById('hdd-select');
+        const c = document.getElementById('case-check').checked;
+        
+        // Резервуємо ~7% на систему (Aurora/Dashlaunch/Cache)
+        maxGb = parseInt(h.value) * 0.93; 
+        
+        const price = parseInt(h.options[h.selectedIndex].dataset.price) + (c ? 180 : 0);
+        document.getElementById('total-price').innerText = price;
+        document.getElementById('max-gb').innerText = maxGb.toFixed(0);
+        
+        if (usedGb > maxGb) {
+            alert("⚠️ Поточний об'єм ігор перевищує новий диск. Список очищено.");
+            clearSelection();
+        }
+        updateUI();
+    }
+
+    function updateUI() {
+        document.querySelectorAll('.game-card').forEach(el => el.classList.remove('selected'));
+        const names = [];
+        selectedIds.forEach(id => {
+            const el = document.getElementById('g-' + id);
+            if (el) el.classList.add('selected');
+            names.push(games.find(g => g.id === id).name);
+        });
+
+        document.getElementById('used-gb').innerText = usedGb.toFixed(2);
+        document.getElementById('game-count').innerText = "Обрано: " + selectedIds.size;
+        
+        const perc = (usedGb / maxGb * 100);
+        const fill = document.getElementById('prog-fill');
+        fill.style.width = Math.min(perc, 100) + "%";
+        fill.classList.toggle('full', perc > 98);
+        
+        document.getElementById('games-input').value = "HDD: " + document.getElementById('hdd-select').value + "GB\n" + 
+                                                      "ІГРИ: " + names.join(', ');
+    }
+
+    function filterGames() {
+        const f = document.getElementById('search').value.toLowerCase();
+        document.querySelectorAll('.game-card').forEach(el => {
+            const txt = el.innerText.toLowerCase();
+            el.style.display = txt.includes(f) ? 'flex' : 'none';
+        });
+    }
+
+    function clearSelection() {
+        selectedIds.clear();
+        usedGb = 0;
+        updateUI();
+    }
+
+    // Ініціалізація
+    calculate();
+    renderGames();
+</script>
+</body>
+</html>
